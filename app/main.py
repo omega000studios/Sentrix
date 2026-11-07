@@ -19,7 +19,7 @@ from app.schemas import LabelInput, MessageInput, OrderView
 from app.service import Conflict, recompute, view
 
 
-logger = logging.getLogger("sellershield")
+logger = logging.getLogger("sentrix")
 logger.setLevel(logging.INFO)
 if not logger.handlers:
     logger.addHandler(logging.StreamHandler())
@@ -35,7 +35,7 @@ def create_app(factory=None, username=None, password=None):
             app.state.sessions = session_factory()
         yield
 
-    app = FastAPI(title="SellerShield Backend", version="0.1.0", description="Single-merchant sandbox demo. PROTECTED is a local rule result, not a PayPal guarantee.", lifespan=lifespan)
+    app = FastAPI(title="Sentrix Backend", version="0.1.0", description="Single-merchant sandbox demo. PROTECTED is a local rule result, not a PayPal guarantee.", lifespan=lifespan)
     app.state.sessions = factory
     app.state.username = username if username is not None else os.getenv("MERCHANT_USERNAME")
     app.state.password = password if password is not None else os.getenv("MERCHANT_PASSWORD")

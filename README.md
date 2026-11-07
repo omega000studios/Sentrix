@@ -1,4 +1,4 @@
-# SellerShield backend
+# Sentrix backend
 
 Member 3's single-merchant sandbox backend: normalized capture ingestion, dispatch queue data, parsed label intake, deterministic verdicts, and audit history. Customer messages, label parsing, and seeded captures are simulated until teammates connect their modules. `PROTECTED` is a local rule result, not a PayPal guarantee.
 
@@ -17,7 +17,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 docker compose up -d --wait
-$env:DATABASE_URL='postgresql+psycopg://sellershield:local-only@localhost:5432/sellershield'
+$env:DATABASE_URL='postgresql+psycopg://sentrix:local-only@localhost:5432/sentrix'
 $env:MERCHANT_USERNAME='merchant'
 $env:MERCHANT_PASSWORD='choose-a-long-random-password'
 $env:CORS_ORIGINS='http://localhost:5173'
@@ -70,12 +70,14 @@ The test fixture rejects database names that do not end in `_test` and rejects t
 
 ```powershell
 # Create a separate database using your local Postgres administrator.
-docker compose exec postgres createdb -U sellershield sellershield_test
-$env:TEST_DATABASE_URL='postgresql+psycopg://sellershield:local-only@localhost:5432/sellershield_test'
+docker compose exec postgres createdb -U sentrix sentrix_test
+$env:TEST_DATABASE_URL='postgresql+psycopg://sentrix:local-only@localhost:5432/sentrix_test'
 python -m pytest -q
 ```
 
 Tests cover address equivalence and mismatch, uncertainty precedence, retry conflicts, validation, authentication, rollback, immutable verdict snapshots, seed repeatability, and persistence across app recreation. SQLite checks do not prove Postgres locking behavior.
+
+For a repeatable Postgres verification, install and start Docker Desktop, then run `& .\tools\check-postgres.ps1` from PowerShell in the repository root. The script creates or reuses the disposable `sentrix_test` database, applies migrations, checks schema drift, and runs the complete suite with Postgres enabled. It restores the shell's database variables afterward and does not reset `demo.db`. The renamed Compose configuration uses a new `sentrix_postgres_data` volume; any old volume is left intact.
 
 ## Render
 

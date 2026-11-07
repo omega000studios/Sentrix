@@ -1,12 +1,12 @@
 databases:
-  - name: sellershield-db
+  - name: sentrix-db
     region: oregon
     plan: basic-256mb
-    databaseName: sellershield
-    user: sellershield
+    databaseName: sentrix
+    user: sentrix
 services:
   - type: web
-    name: sellershield-api
+    name: sentrix-api
     runtime: python
     region: oregon
     plan: starter
@@ -19,7 +19,7 @@ services:
         value: 3.12.12
       - key: DATABASE_URL
         fromDatabase:
-          name: sellershield-db
+          name: sentrix-db
           property: connectionString
       - key: MERCHANT_USERNAME
         sync: false
