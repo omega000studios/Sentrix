@@ -2,6 +2,12 @@
 
 Member 3's single-merchant sandbox backend: normalized capture ingestion, dispatch queue data, parsed label intake, deterministic verdicts, and audit history. Customer messages, label parsing, and seeded captures are simulated until teammates connect their modules. `PROTECTED` is a local rule result, not a PayPal guarantee.
 
+## Merchant UI mockup
+
+Open `/` on the running backend for a lightweight merchant dashboard. It uses plain HTML, CSS, and JavaScript served by FastAPI; no frontend installation or build is needed. Enter the same merchant username/password configured on the server. Credentials remain in page memory and are cleared on sign-out or reload.
+
+The dashboard reads the real `/orders` API, filters/searches the queue, and shows payment and label addresses with changed fields highlighted. Each order includes a source marker. The label simulator calls the real `/labels` endpoint: running a matching, mismatched, or low-confidence check saves a new label and verdict to your demo database. It does not upload images, hold shipments, refund payments, or call PayPal. Treat this as a local prototype for Member 4's eventual frontend.
+
 ## Run locally
 
 Use Python 3.12 and Docker Desktop. In PowerShell:
@@ -60,6 +66,8 @@ python -m pytest -q
 
 This runs rule tests and SQLite API checks. Postgres variants skip unless `TEST_DATABASE_URL` is set. Use a **separate, disposable database**: the test fixture applies migrations and deletes all rows in the four application tables after each test. Never use a shared or deployed database.
 
+The test fixture rejects database names that do not end in `_test` and rejects the configured working database. This guard does not make a shared database disposable; use a dedicated database only.
+
 ```powershell
 # Create a separate database using your local Postgres administrator.
 docker compose exec postgres createdb -U sellershield sellershield_test
@@ -76,3 +84,11 @@ Connect this repository as a Render Blueprint using `render.yaml`. It provisions
 After deployment, check `/health/ready`, confirm `/orders` returns 401 without credentials, then authenticate and confirm queue access. Seed the database from the service shell only when synthetic scenarios are wanted. The readiness endpoint and Swagger schema do not expose buyer records. Request logs use route templates and omit bodies and rejected field values; server access logs are disabled to avoid logging identifiers in paths.
 
 Deployment references: [Render FastAPI](https://render.com/docs/deploy-fastapi), [Render Postgres](https://render.com/docs/postgresql-creating-connecting).
+
+## Security boundaries
+
+Generated `output/`, temporary sandbox exports, local databases and their journal files, environment files, private keys, and logs are excluded from Git. `.env.example` remains tracked with placeholder values. Ignore rules do not remove files from old commits; the branch update removes previously tracked output from its current tree only.
+
+Order responses are authenticated and sent with `Cache-Control: no-store`. The dashboard has a same-origin content security policy, framing protection, and escaped customer text. Database transactions finish before the API returns success. Validation errors omit rejected input, and logs omit message/address contents.
+
+This remains a single-merchant sandbox demo. Before public use, configure HTTPS and authentication rate limiting at the hosting boundary, choose unique merchant credentials, and replace shared Basic auth with per-merchant identity and tenant isolation before handling real customer data. The simulated label intake is a trusted merchant demo input, not a verified carrier record. PayPal webhook verification, financial actions, and approval enforcement are not yet implemented.

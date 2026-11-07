@@ -23,6 +23,18 @@ def load(factory, name="mismatch"):
     return capture, message, label
 
 
+def test_dashboard_serves_without_exposing_order_data(factory):
+    load(factory)
+    with TestClient(create_app(factory, "merchant", "test-password")) as api:
+        response = api.get('/')
+        assert response.status_code == 200
+        assert 'Check before you ship.' in response.text
+        assert 'FIXTURE-CAPTURE' not in response.text
+        assert api.get('/static/dashboard.js').status_code == 200
+        assert api.get('/static/dashboard.css').status_code == 200
+        assert api.get('/orders').status_code == 401
+
+
 def test_vertical_slice_and_restart(factory):
     capture, message, label = load(factory)
     with client(factory) as api:

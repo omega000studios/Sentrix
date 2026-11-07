@@ -2,12 +2,15 @@ import logging
 import os
 import secrets
 import time
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import select, text
 
@@ -36,6 +39,12 @@ def create_app(factory=None, username=None, password=None):
     app.state.sessions = factory
     app.state.username = username if username is not None else os.getenv("MERCHANT_USERNAME")
     app.state.password = password if password is not None else os.getenv("MERCHANT_PASSWORD")
+    static_dir = Path(__file__).parent / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def dashboard():
+        return FileResponse(static_dir / "index.html")
 
     def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
         user_ok = secrets.compare_digest(credentials.username.encode(), (app.state.username or "").encode())
@@ -65,7 +74,13 @@ def create_app(factory=None, username=None, password=None):
         except Exception:
             # Log no exception text: database errors can contain bound address/message values.
             logger.error("request failed method=%s", request.method)
-            return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+            response = JSONResponse(status_code=500, content={"detail": "Internal server error"})
+        response.headers['Cache-Control'] = 'no-store'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['Referrer-Policy'] = 'no-referrer'
+        if request.url.path == '/' or request.url.path.startswith('/static/'):
+            response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none'"
         route = request.scope.get("route")
         logger.info("method=%s route=%s status=%s duration_ms=%.1f", request.method, getattr(route, "path", "unmatched"), response.status_code, (time.monotonic() - started) * 1000)
         return response
@@ -89,18 +104,18 @@ def create_app(factory=None, username=None, password=None):
         return {"status": "ready"}
 
     @app.get("/orders", response_model=list[OrderView], dependencies=[Depends(authenticate)])
-    def orders(db=Depends(session)):
+    def orders(db=Depends(session, scope="function")):
         return [view(db, order) for order in db.scalars(select(Order).order_by(Order.created_at.desc(), Order.id.desc()))]
 
     @app.get("/orders/{order_id}", response_model=OrderView, dependencies=[Depends(authenticate)])
-    def detail(order_id: str, db=Depends(session)):
+    def detail(order_id: str, db=Depends(session, scope="function")):
         order = db.get(Order, order_id)
         if order is None:
             raise HTTPException(404, "Order not found")
         return view(db, order)
 
     @app.post("/messages", response_model=OrderView, dependencies=[Depends(authenticate)])
-    def message(body: MessageInput, db=Depends(session)):
+    def message(body: MessageInput, db=Depends(session, scope="function")):
         order = locked_order(db, body.order_id)
         if body.ai_analysis and body.ai_analysis.quote not in body.text:
             raise HTTPException(422, "Analysis quote must occur in the original message")
@@ -119,7 +134,7 @@ def create_app(factory=None, username=None, password=None):
         return view(db, order)
 
     @app.post("/labels", response_model=OrderView, dependencies=[Depends(authenticate)])
-    def label(body: LabelInput, db=Depends(session)):
+    def label(body: LabelInput, db=Depends(session, scope="function")):
         order = locked_order(db, body.order_id)
         db.add(Label(order_id=order.id, data=body.model_dump(exclude={"order_id"})))
         db.flush()

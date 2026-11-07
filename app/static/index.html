@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SellerShield · Dispatch queue</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <script src="/static/dashboard.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to dispatch queue</a>
+  <aside class="sidebar" aria-label="Workspace">
+    <a class="brand" href="/" aria-label="SellerShield home"><svg width="28" height="32" viewBox="0 0 28 32" aria-hidden="true"><path d="M14 2 26 7v9c0 7-7 11-12 14C9 27 2 23 2 16V7Z" fill="currentColor"/><path d="m8 15 4 4 8-9" fill="none" stroke="white" stroke-width="2.5"/></svg>SellerShield</a>
+    <div class="workspace-label">Merchant workspace</div>
+    <a class="nav-active" href="#main" aria-current="page"><span aria-hidden="true">▤</span> Dispatch queue</a>
+    <a class="nav-link" href="/docs" target="_blank" rel="noopener">API reference <span aria-hidden="true">↗</span><span class="sr-only"> (opens in new tab)</span></a>
+    <div class="sidebar-footer"><span class="environment-dot" aria-hidden="true"></span>Sandbox workspace<p>Test payments. Simulated labels.</p></div>
+  </aside>
+  <div class="shell">
+    <header class="topbar"><span>Workspace <span class="breadcrumb">/ Dispatch</span></span><div><span id="connection">Not connected</span><button id="signout" class="text-button" hidden>Sign out</button></div></header>
+    <main id="main" tabindex="-1">
+      <div class="page-heading"><div><h1>Check before you ship.</h1><p>Compare each shipment with its original PayPal payment address.</p></div><button id="refresh" class="secondary" disabled><span aria-hidden="true">↻</span> Refresh orders</button></div>
+      <section id="login" class="login-panel" aria-labelledby="login-title">
+        <div><h2 id="login-title">Connect your merchant queue</h2><p>Use the merchant credentials configured for this backend.<br>This local mockup reads your saved orders.</p></div>
+        <form id="login-form"><label>Username<input id="username" name="username" autocomplete="username" value="merchant" required></label><label>Password<input id="password" name="password" type="password" autocomplete="current-password" required></label><button id="connect" class="primary">Connect queue</button></form>
+      </section>
+      <p id="notice" role="status" aria-live="polite"></p>
+      <section id="workspace" hidden aria-label="Merchant dispatch workspace">
+        <div class="queue-summary"><h2>Dispatch queue <span id="total">0</span></h2><p>Review destination changes before fulfillment.</p></div>
+        <div class="toolbar"><div class="filters" role="group" aria-label="Filter by verdict"><button data-filter="ALL" aria-pressed="true">All orders</button><button data-filter="BLOCKED" aria-pressed="false">Blocked</button><button data-filter="REVIEW" aria-pressed="false">Review</button><button data-filter="PROTECTED" aria-pressed="false">Protected</button></div><label class="search"><span class="sr-only">Search order IDs</span><input id="search" type="search" placeholder="Search order ID…"></label></div>
+        <div class="dispatch-layout"><section class="queue" aria-label="Orders"><div class="table-scroll"><table><caption class="sr-only">Saved orders and their latest dispatch decisions</caption><thead><tr><th scope="col">Order / source</th><th scope="col">Amount</th><th scope="col">Decision</th></tr></thead><tbody id="orders"></tbody></table></div><p id="empty" hidden>No orders match. Try another filter or search.</p><p class="queue-footnote">Decisions come from saved backend rules.</p></section><section id="detail" class="detail" aria-label="Selected order details"><p class="detail-placeholder">Select an order to inspect its shipment.</p></section></div>
+        <footer class="disclaimer">Prototype connected to your local backend. “Protected” is a local rule result, not a PayPal guarantee. Refunds, shipment holds, and dispute submission are not performed here.</footer>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
