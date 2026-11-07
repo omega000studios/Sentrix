@@ -1,0 +1,29 @@
+databases:
+  - name: sellershield-db
+    region: oregon
+    plan: basic-256mb
+    databaseName: sellershield
+    user: sellershield
+services:
+  - type: web
+    name: sellershield-api
+    runtime: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --no-access-log --log-level info
+    healthCheckPath: /health/ready
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.12
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sellershield-db
+          property: connectionString
+      - key: MERCHANT_USERNAME
+        sync: false
+      - key: MERCHANT_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

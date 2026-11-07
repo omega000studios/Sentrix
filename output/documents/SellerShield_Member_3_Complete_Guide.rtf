@@ -1,0 +1,968 @@
+{\rtf1\ansi\ansicpg1252\deff0\uc1
+{\fonttbl{\f0\fswiss Arial;}{\f1\fmodern Consolas;}}
+{\stylesheet{\s0\f0\fs22 Normal;}{\s1\sbasedon0\snext0\f0\fs40\b Title;}{\s2\sbasedon0\snext0\outlinelevel0\f0\fs30\b Heading 1;}{\s3\sbasedon0\snext0\outlinelevel1\f0\fs24\b Heading 2;}}
+{\colortbl;\red0\green0\blue0;\red217\green217\blue217;\red242\green244\blue246;}
+\paperw11906\paperh16838\margl1080\margr1080\margt1000\margb1000\widowctrl\viewkind4
+{\footer\pard\qc\f0\fs18 Page \chpgn\par}
+\pard\s1\f0\fs40\b\sa200\keepn SellerShield AI member 3 complete guide\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Backend and rules engine from product idea to working demo\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Prepared for the backend owner on 7 November 2026\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 You build the server that connects payment records, customer messages, shipping labels and the merchant dashboard. Your code compares addresses, applies explicit rules, stores the evidence behind each result and returns a decision the merchant can understand. Your first milestone is a stored order that produces an explained BLOCKED result through the API.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Read sections 1 to 5 to understand the product and your tools. Follow sections 6 to 13 while working on the backend. Sections 14 to 20 cover testing, teammate integration, planned extensions, deployment and the demo. The appendices provide a glossary, troubleshooting steps and references.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The project documents define the team responsibilities. The implementation described here is the single-merchant sandbox backend in the Sentrix workspace. Features marked planned need further work before the team can demonstrate them as working integrations.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 1 The product in plain language\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 A customer pays through PayPal using shipping address A. Later, they ask support to ship to address B. A seller might accept the request without checking how it affects the original payment transaction. SellerShield compares the payment address with the intended shipment destination before dispatch.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 For example, the payment says 123 Main Street, Apartment 4, Austin, Texas 78701. The shipping label says 987 Main Street at the same city and ZIP code. SellerShield identifies the changed house number and tells the merchant to hold dispatch.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The product has a practical purpose even when the customer made an honest mistake. An address-change request is not proof of fraud. Your system detects a destination mismatch or uncertainty and helps the merchant review it.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 PayPal's US Seller Protection policy requires shipment to the shipping address on the transaction details page, along with other conditions. Address alignment is one check, not a guarantee that a future dispute will be decided in the seller's favor. The dashboard's PROTECTED label is SellerShield's local rule result. See reference 3 for the policy.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The intended merchant experience is to see a queue of orders, open an order, compare the addresses, read the reasons, then choose an action. Later features help prepare dispute evidence and perform merchant-approved PayPal actions.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn What the three results mean\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Result\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Meaning\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Merchant response\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 PROTECTED\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Addresses agree under the supported rules and configured checks pass\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Continue through the merchant's fulfillment workflow\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 REVIEW\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Data, extraction, eligibility or comparison needs a human check\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Resolve the uncertainty before dispatch\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 BLOCKED\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Reliable inputs show a meaningful destination mismatch\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Hold dispatch and review remediation\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 BLOCKED changes this application's workflow. It does not freeze PayPal funds or physically stop a carrier. Preventing shipping outside the dashboard would require integration with the merchant's fulfillment system.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 2 Your responsibilities and team boundaries\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The research PDF calls Member 3 the Backend and Rules Engine Lead. It assigns you FastAPI routing, address normalization, field-level differences and SQLite audit persistence. The architecture plan adds orchestration, evidence bundling and backend deployment. The current implementation uses Postgres for local development and deployment, with SQLite in the test suite.\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Member\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Owns\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b What you exchange\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 1 PayPal lead\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Webhook verification, trusted PayPal fetches, payment and dispute API calls\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 They supply normalized captures and action outcomes; you supply persistence and workflow integration\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 2 AI lead\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Message intent extraction, label vision and factual evidence summaries\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 They supply validated analysis and parsed labels; you supply stored inputs and contracts\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 3 You\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Backend app, schemas, database, comparison, verdicts, audit history and deployment\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 You connect the modules and return consistent results\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 4 Frontend lead\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Queue, order drawer, address difference display and action UI\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 You supply endpoint schemas, examples, authentication behavior and errors\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 5 Demo and QA lead\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Fixtures, rehearsals, documentation, pitch and video\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 You supply stable scenarios, reset instructions and clear integration status\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Use one FastAPI application with modules owned by different members. Separate ownership does not require separate servers. Member 1 can mount a verified webhook router in your app, and Member 2 can expose functions or a router within the same backend.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 You coordinate the handoffs. Member 1 remains responsible for PayPal protocol details; Member 2 remains responsible for the extraction model and prompts. You remain responsible for validating their outputs at your boundary and for the decisions your service records.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 3 The full flow through your backend\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The essential flow is payment data, optional message analysis, parsed label, address comparison, verdict, database commit, dashboard response.\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Member 1 verified PayPal capture\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn        Capture schema validation\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn         Original order stored\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Customer message + Member 2 analysis\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn      Message stored and order updated\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Member 2 parsed shipping label\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn  Normalize addresses and compare fields\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     Apply rules and save audit snapshot\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 |\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn                 v\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep      Return updated order to Member 4\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Before a label exists, a message can set MESSAGE_FLAGGED when it requests an address change. The current backend does not compare the proposed message address to decide dispatch. Final address evaluation uses the PayPal shipping address and the latest parsed label. Message intent confidence can still cause REVIEW after a label exists.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The order of arrival can vary. A label can arrive before a message. A message can first arrive without analysis and receive analysis later. When the latest relevant inputs change, the service recomputes the result and preserves a new verdict snapshot.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Three different addresses have three different meanings. The PayPal address is the original transaction reference. The proposed address is what the customer requested in a message. The label address is where the shipment is intended to go. Keep these separate in names, storage and explanations.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 4 What exists and what remains planned\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Capability\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Current workspace status\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Order persistence through a shared ingestion function\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented for trusted normalized captures\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 PayPal webhook signature verification and live sandbox fetches\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Member 1 integration still required\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Queue and order detail APIs\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Message intake with optional structured analysis\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Direct LLM calls and inbox connections\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Member 2 integration still required\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Parsed label JSON intake\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Image upload and vision parsing\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Member 2 integration still required\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Address comparison and three verdicts\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented for the supported US forms\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Audit input snapshots and rule version\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Implemented in the database\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Public audit history API\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Not implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Merchant override or review resolution\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Not implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Refund, reorder and tracking submission\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Not implemented in this backend slice\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Dispute evidence bundle and submission\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Planned extension\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Authentication\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 HTTP Basic for a single-merchant sandbox demo\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Multi-merchant accounts and tenant isolation\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Not implemented\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Render deployment configuration\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Present; successful deployment must be checked separately\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 An endpoint returning a local result is not proof that PayPal accepted an action. Keep fixture, sandbox and future production data clearly identified. The current schema permits fixture and sandbox capture sources only.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 5 Your actual technology stack\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Tool\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Your use\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b File or location\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Python 3.12\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Backend language and supported runtime target\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 .python-version and render.yaml\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 FastAPI\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 HTTP routes, dependencies, errors and generated API schema\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/main.py\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Pydantic\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Data types, field constraints and boundary validation\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/schemas.py\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Uvicorn\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Server process that runs the FastAPI application\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 README.md and render.yaml\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 SQLAlchemy 2\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Database models, queries and transactions\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/db.py and app/service.py\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 psycopg 3\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Python driver connecting SQLAlchemy to Postgres\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 requirements.txt\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Postgres 16 locally\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Durable relational database\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 compose.yaml\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Alembic\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Versioned database schema changes\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 migrations and alembic.ini\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 usaddress\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Parsing US street addresses into components\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/rules.py\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 RapidFuzz\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Similarity signal for street or city text\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/rules.py\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 pytest and HTTPX\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Rule tests and FastAPI TestClient support\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 tests\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Docker Compose\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Runs the local Postgres service\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 compose.yaml\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Render\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Hosts the planned web service and managed Postgres\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 render.yaml\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 FastAPI handles requests. Uvicorn runs the server process. Pydantic checks payload shapes. SQLAlchemy reads and writes records. Postgres stores those records. Alembic creates or changes the tables. These are different jobs within the same backend.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 usaddress identifies components probabilistically. It cannot confirm that an address exists and does not normalize it for you. Your code adds suffix and direction mappings, preserves important components and routes unsupported or ambiguous cases to REVIEW. RapidFuzz provides string similarity, not a shipping authorization.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The current project already has SQLAlchemy and Alembic. Keep those choices rather than introducing SQLModel or another database layer. No queue, Redis service, vector database or separate model-training pipeline is needed for the current slice.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 6 The repository reading order\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Read the files in this order so each layer has context.\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Order\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b File\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b What to understand\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 1\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 README.md\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Setup, integrations, limitations and deployment procedure\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 2\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 fixtures/scenarios.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Concrete capture, message and label examples\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 3\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/schemas.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Accepted fields, types, required values and response structure\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 4\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/rules.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Normalization, comparisons, uncertainty and verdict precedence\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 5\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/db.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Tables and database connection setup\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 6\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/service.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Ingestion, latest input selection, recomputation and view assembly\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 7\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/main.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Routes, transactions, authentication, CORS and error responses\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 8\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 app/seed.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Repeatable synthetic demo records\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 9\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 tests/test_rules.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Examples of intended decision behavior\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 10\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 tests/test_api.py and tests/conftest.py\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 API, persistence, concurrency and test database lifecycle\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx700\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx4300\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 11\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 migrations and render.yaml\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Schema creation and hosted deployment\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Keep changes in the layer that owns the behavior. Change field constraints in schemas, comparison policy in rules, cross-record workflows in service, HTTP handling in main and schema changes in migrations. A rule change should not require copying comparison logic into routes or the frontend.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 7 Set up and run locally\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Use Python 3.12, Docker Desktop and a terminal in the project root. The following commands are for PowerShell. Read the commands before running them; they install dependencies, start a local database and insert synthetic demo orders.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Create the Python environment\b0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Set-Location 'C:\\Users\\Hp\\Documents\\Sentrix'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn py -3.12 -m venv .venv\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn .\\.venv\\Scripts\\Activate.ps1\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn python --version\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep python -m pip install -r requirements.txt\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 If the py launcher is unavailable, use the path to a Python 3.12 executable. A different system Python does not establish compatibility with the project's 3.12 target. If PowerShell blocks activation, call .\\.venv\\Scripts\\python.exe and other executables by their full environment paths instead of changing machine-wide policy.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Start the database and set configuration\b0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn docker compose up -d --wait\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn $env:DATABASE_URL = 'postgresql+psycopg://sellershield:local-only@localhost:5432/sellershield'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn $env:MERCHANT_USERNAME = 'merchant'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn $env:MERCHANT_PASSWORD = 'replace-with-your-own-long-random-demo-password'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn $env:CORS_ORIGINS = 'http://localhost:5173'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn alembic upgrade head\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn python -m app.seed\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The database password local-only is the local Docker example value, not a credential to reuse on a hosted database. Choose a private merchant password. Avoid placing credentials in screenshots, committed files or a public frontend build.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The app reads process environment variables. Copying .env.example to .env does not load it automatically. Set variables in the shell that starts the app or configure the host's environment settings.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Docker Compose binds Postgres to the local machine and uses a named volume. Stopping containers normally preserves that volume. Avoid commands that remove volumes unless you intend to discard the local database.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Confirm the backend is reachable\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Open http://127.0.0.1:8000/docs in a browser. Authorize with the configured merchant username and password. GET /health/ready should return a ready response. GET /orders requires authentication and should show the seeded scenarios.\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep Invoke-RestMethod 'http://127.0.0.1:8000/health/ready'\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The health endpoint checks database connectivity. It does not verify the full application schema, PayPal connectivity or AI availability. Run migrations before treating the service as usable.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 8 Understand the shared contracts\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 app/schemas.py is the source of truth for requests and responses. The base contract rejects unknown fields. A typo such as confidence_score in place of confidence should fail validation rather than silently disappear.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The current address schema supports country US. Amounts use USD and positive decimal strings with two fractional digits. State format and ZIP validity are checked during address normalization. Some address fields accept empty strings at the schema level so incomplete data can be preserved and routed to REVIEW.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Capture from Member 1\b0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "order_id": "DEMO-CLEAN",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "paypal_order_id": "FIXTURE-ORDER-clean",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "capture_id": "FIXTURE-CAPTURE-clean",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "amount": \{"value": "149.99", "currency": "USD"\},\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "paypal_address": \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "line1": "123 Main Street",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "line2": "Apt 4",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "city": "Austin",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "state": "TX",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "postal_code": "78701",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "country": "US"\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   \},\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "seller_protection": "ELIGIBLE",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "source": "fixture"\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep \}\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 This is a synthetic example. Actual sandbox captures use source sandbox and values fetched and verified by Member 1. Capture is a shared internal contract, not a public unverified HTTP intake endpoint.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Message with Member 2 analysis\b0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "order_id": "DEMO-CLEAN",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "id": "MSG-guide-1",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "text": "Please ship to my office instead",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "ai_analysis": \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "intent": "ADDRESS_CHANGE_REQUEST",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "confidence": 0.98,\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "quote": "ship to my office instead",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "proposed_address": null\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   \}\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep \}\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Supported intent values are ADDRESS_CHANGE_REQUEST, DELIVERY_QUESTION, THANKS, OTHER and AMBIGUOUS. The quote must be a nonempty exact substring of the original message. This confirms the quoted text came from that message; it does not independently prove the intent interpretation is correct.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Analysis may be absent initially. The same message ID and unchanged text may receive analysis later. Reusing an existing ID with conflicting data produces a conflict instead of overwriting history silently.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Parsed label from Member 2\b0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "order_id": "DEMO-CLEAN",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "address": \{\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "line1": "987 Main Street",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "line2": "Apt 4",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "city": "Austin",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "state": "TX",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "postal_code": "78701",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     "country": "US"\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   \},\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "tracking_number": "SIMULATED-TRACKING",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "carrier": "SIMULATED",\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn   "confidence": 0.98\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep \}\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 POST /labels accepts this parsed JSON. It does not accept an image file. Member 2 must implement upload and vision parsing or an adapter that feeds this contract. Missing label confidence routes to REVIEW.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Reading the response\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 An OrderView includes capture information, state, timestamps, latest message, latest analysis, latest label, comparison, verdict and recommended_action. Before a label is evaluated, verdict and recommended_action are null; comparison.match is also null. Null means no complete result yet, not a green result.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The same response shape is returned by queue, detail, message and label routes. Member 4 can update the drawer directly from a successful message or label response, then refresh the queue as needed.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 9 The address engine from input to verdict\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The public entry point in app/rules.py is evaluate(inputs). It reads the PayPal address, the label address, optional intent analysis and seller-protection status. It returns comparison, verdict and recommended action without writing to the database.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 normalize(address) first validates the address shape. It requires line1, city, state and postal code to contain text. It accepts known two-letter state or territory codes and either a five-digit ZIP or ZIP plus four extension. It then parses the street and unit through usaddress.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The supported parser result must be a Street Address with a house number and street name. Unsupported parsed components, repeated labels and incomplete unit information produce an uncertain result. PO boxes are currently routed to REVIEW instead of being supported automatically.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The code canonicalizes common suffixes such as Street and St, and direction words such as North and N. It compares house number, assembled street, unit identifier, city, state and full postal code. Country is fixed to US by the schema.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Match describes the comparison facts\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Comparison value\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Current meaning\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Supported normalized fields agree and the original address objects are equal\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 NEAR_MATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Normalized fields agree but the original address objects differ\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 At least one compared normalized field differs\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 null\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Parsing or completeness prevents a reliable comparison\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The full ZIP extension is preserved. A five-digit ZIP and the same ZIP with a four-digit extension are not automatically treated as equivalent by the current code. Missing unit information on one address versus a present unit on the other currently produces a unit difference; with otherwise reliable inputs it can produce BLOCKED. These are current behaviors to discuss with evaluated fixtures before changing policy.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Verdict applies uncertainty before mismatch\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The current precedence is explicit:\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Any configured uncertainty -> REVIEW\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Otherwise MISMATCH         -> BLOCKED\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep Otherwise                  -> PROTECTED\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Uncertainty includes incomplete or unsupported addresses, missing label confidence, label confidence below 0.90, intent confidence below 0.90, AMBIGUOUS intent or a seller-protection status other than ELIGIBLE. A confidence of exactly 0.90 meets the current threshold.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 PARTIALLY_ELIGIBLE and UNKNOWN both route to REVIEW in this implementation. They do not automatically pass. This is the configured local policy, not a statement that every partially eligible PayPal transaction lacks all protection.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 A street or city difference with a RapidFuzz ratio of at least 85 also causes REVIEW. The code treats similar wording as a reason for human judgment, not proof of equivalence. These numeric cutoffs are local heuristics that need evaluation on fixtures.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Examples of the actual rules\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Inputs assuming other checks pass\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Match\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Verdict\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Same complete address\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 PROTECTED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Main Street versus Main St\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 NEAR_MATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 PROTECTED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Apt 4 versus number sign 4\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 NEAR_MATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 PROTECTED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 House number 123 versus 987\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 BLOCKED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Apt 4 versus Apt 9\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 BLOCKED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Austin versus Houston\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 BLOCKED\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Main versus similar spelling Mane\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 REVIEW\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Different ZIP and label confidence 0.65\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 MISMATCH\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 REVIEW\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx5650\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx7600\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Missing street or unsupported PO box\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 null\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 REVIEW\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 A MISMATCH with REVIEW is not a contradiction. The comparison records the difference, while the verdict says human checking is required because another condition is uncertain. Preserve the reasons for both.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The current comparison does not use the proposed message address as an independent destination check. An unrecognized or untranslated customer request can therefore require additional workflow design. Document this limitation in integration discussions instead of describing the prototype as a complete fraud detector.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Before changing suffix mappings, numeric cutoffs, missing-unit behavior or precedence, add representative test cases, agree on the intended result and bump the rule version when the policy changes. Keep the original inputs in the audit snapshot.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 10 Database and audit history\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 app/db.py defines four SQLAlchemy models. The initial Alembic migration creates the same four tables.\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Table\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Important data\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Why you need it\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 orders\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 IDs, capture ID, original address, decimal amount, eligibility, source, state and timestamps\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Preserves the transaction reference and current workflow state\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 messages\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Order link, external message ID, original text and optional analysis\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Links customer communication to the order\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 labels\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Order link and parsed label JSON\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Preserves each supplied label\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 verdicts\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Order link, timestamp, rule version, input snapshot and result\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Explains what the engine decided from a particular set of inputs\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Capture IDs are unique. Message external IDs are unique within an order. Labels and verdicts append as new records. The API has no route to edit a saved verdict snapshot, although database administrators can still change stored data. An application audit table is not cryptographic tamper-proof storage.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Amounts are stored as decimal numeric values and returned as two-decimal strings. Keep currency with the amount. Avoid binary floating point when handling payments.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Transactions keep related changes together\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The request-scoped database dependency begins a transaction. A successful operation commits when the transaction exits. An exception rolls it back. A label insert, verdict insert and order-state update should succeed together or leave no partial update.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 flush sends pending changes to the database inside the current transaction. commit makes the transaction durable. The shared ingest_capture helper flushes but leaves the commit to its caller. Member 1 must call it inside an appropriate transaction.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Message and label routes lock the order row before modifying inputs. On Postgres, this serializes concurrent changes to the same order so two requests do not compute results from inconsistent input sets. SQLite tests do not establish that the Postgres row-locking path works.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Latest inputs and the current view\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 latest selects the record with the greatest internal ID for the requested order. view assembles the order and latest message, label and verdict. recompute updates timestamps, handles the no-label state and otherwise evaluates the latest inputs before appending a verdict.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 This is a simple latest-message policy. A newer unrelated message can become the message used in the current view. If the product must retain every unresolved address-change request, extend this behavior deliberately and test message ordering; do not assume the prototype already does that.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 11 API behavior and error handling\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Route\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Auth\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Current behavior\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 GET /health/ready\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Public\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Checks database connection and returns ready or 503\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 GET /orders\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Merchant\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Returns newest-first full order views\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 GET /orders/\{order_id\}\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Merchant\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Returns one order view or 404\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 POST /messages\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Merchant\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Stores a message or attaches delayed analysis, recomputes and returns the order\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 POST /labels\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Merchant\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Appends parsed label JSON, recomputes and returns the order\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 GET /docs\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Public documentation page\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Exposes API descriptions; merchant requests still require authentication\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The current queue returns all order views. It has no pagination or server-side filtering. That is sufficient for a small seeded demo. Add pagination when real queue size justifies it and agree on a new response shape with Member 4.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Errors the frontend should handle\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b HTTP status\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Meaning here\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Frontend behavior\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 401\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Missing or incorrect merchant credentials\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Request valid session credentials\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 404\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Unknown order\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Show an order-not-found message\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 409\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Existing capture or message identifier conflicts with new data\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Explain the conflict; do not silently overwrite\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 422\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Request violates the contract or exact-quote rule\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Show the relevant validation issue\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 500\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Unexpected backend operation failed\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Show failure and offer a controlled retry\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 503\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Database unavailable on readiness check\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Treat the backend as unavailable\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The app removes rejected input values from validation error responses so buyer details are not echoed unnecessarily. Request logs use route templates instead of order IDs and omit bodies. Uvicorn access logging is disabled in the configured command.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Authentication uses HTTP Basic for one merchant. It needs HTTPS when used remotely. CORS lets the configured browser origin send permitted requests; it does not authenticate a merchant and does not provide tenant isolation.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 12 A complete local API walkthrough\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Use synthetic records for this exercise. Run the setup and seed steps first. Seeding inserts DEMO-CLEAN, DEMO-MISMATCH and DEMO-UNCERTAIN and does not overwrite existing orders.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Observe the three seeded outcomes\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 In /docs, authorize and call GET /orders. You should find one PROTECTED, one BLOCKED and one REVIEW order when the seed database is fresh. The synthetic tracking and source fields must stay labeled as simulated or fixture data.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Open GET /orders/DEMO-MISMATCH. Compare paypal_address.line1 with label.address.line1. The house number changes from 123 to 987. The comparison should report MISMATCH and a reason describing a different number.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Open GET /orders/DEMO-UNCERTAIN. Its label confidence is 0.65. Even if the address agrees, the verdict should be REVIEW because confidence is below 0.90.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Create a new mismatch through the label route\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Call POST /labels with the parsed-label example from section 8 for DEMO-CLEAN. It changes that fixture order's latest label to 987 Main Street. The response should show MISMATCH, BLOCKED and HOLD_REFUND_REORDER if the other current inputs remain eligible and confident.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Then post the original 123 Main Street address with confidence 0.98. The result should return to PROTECTED, and the database should retain both verdict snapshots. There is currently no public history endpoint, so inspect those records through your tests or database tools.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Exercise human review\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Post another label with the original address and confidence 0.65. The verdict should be REVIEW. Repeat with confidence omitted and expect REVIEW again. Do not convert missing confidence to an artificial 1.0 in an adapter.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Exercise validation and conflicts\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Try confidence 9 and expect 422. Try an unknown order ID and expect 404. Send a quote that is not present in the message and expect 422. Reuse a stored message ID with different text while retaining a valid matching quote and expect 409.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 These calls change the fixture orders. The seed command will not reset them because it preserves existing orders. For a pristine recording, use a new disposable demo database or a separately designed, reviewed reset procedure. Do not delete shared records casually.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 13 Your daily development workflow\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Begin with the demo path and current contract. Pick one observable outcome, such as making a particular valid formatting variant produce NEAR_MATCH. Read the shared function and its callers before editing it.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Add a focused test when the behavior is nontrivial. Make the change in the owning layer, run the relevant tests, then run the backend suite. If the contract changes, update schemas, fixtures, examples and affected frontend or integration callers together.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Re-run one meaningful API scenario after changes to orchestration, serialization or persistence. A passing pure rule test does not prove the response model or transaction path works. A passing SQLite API test does not prove the Postgres concurrency path works.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Keep source code changes separate from deployment and data operations. Review migrations before applying them to a shared database. Never remove an original transaction address to accommodate a customer's new request.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 At the end of the day, show the team a working scenario, report remaining integration boundaries and provide exact payload examples. A short demonstration of an explained verdict is more useful than reporting that a module is almost done.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Build order if you are starting from scratch\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 1. Agree US scope, JSON contracts, null handling and rule precedence.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 2. Create the FastAPI app, database models and migration.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 3. Ingest one synthetic order through the shared helper.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 4. Accept parsed label JSON and implement the plain comparison function.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 5. Persist the verdict and return the order through the API.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 6. Cover formatting variants, destination changes and uncertainty with tests.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 7. Connect Member 1 and Member 2 to the same contracts.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 8. Connect Member 4 to queue, detail and mutation responses.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 9. Verify Postgres behavior, deploy and rehearse the actual demo.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 10. Add approved actions and evidence only after the core path is stable.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 14 Testing without destroying the wrong database\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The suite contains direct rule tests and API tests. The API fixture runs against SQLite and optionally Postgres. Read tests/conftest.py before setting TEST_DATABASE_URL.\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep python -m pytest -q\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Without TEST_DATABASE_URL, Postgres variants skip. A green run with skipped Postgres tests is not evidence that hosted Postgres behavior or row locking was checked.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The Postgres test fixture runs migrations and deletes all rows in the four application tables after each test. TEST_DATABASE_URL must point to a separate, disposable test database. Never use the local working demo, a teammate's shared database or the deployed database for this variable.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 With the local Compose database running, create a separate database, then opt in:\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn docker compose exec postgres createdb -U sellershield sellershield_test\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn $env:TEST_DATABASE_URL = 'postgresql+psycopg://sellershield:local-only@localhost:5432/sellershield_test'\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep python -m pytest -q\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 If the test database already exists, reuse it only when it is disposable and not shared. Remove the test variable from a shell after testing when appropriate:\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep Remove-Item Env:TEST_DATABASE_URL\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn What the current tests cover\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Area\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Examples\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Address rules\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Exact match, abbreviation, unit formatting, different house, unit, ZIP, city and state\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Uncertainty\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Low or missing label confidence, low intent confidence, ambiguous intent and unconfirmed eligibility\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 API boundary\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Authentication, unknown orders, out-of-range confidence and invented quotes\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Persistence\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Order survives app recreation; verdict includes inputs and rule version\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Transactions\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Failed recomputation rolls back the label and state change\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Retries\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Identical capture accepted; conflicting capture rejected\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Message evolution\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Delayed analysis accepted; conflicting original text rejected\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Seed data\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Running the seed twice does not duplicate the three orders\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Concurrency\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Postgres-only test checks serialized message and label updates\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Additional useful cases include missing units, ZIP extensions, multiple messages, out-of-order analysis, multiple labels and disconnects during external actions. Add tests when implementing those behaviors or resolving their policy. Do not claim they are covered by a neighboring test.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 15 Integrating Member 1 and Member 2\b0\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Member 1 supplies trusted capture records\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Member 1 should verify the PayPal webhook signature, fetch trusted order or capture information, map it to Capture and call ingest_capture. The helper must not be exposed through an unauthenticated public route that accepts a claimed PayPal address.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The existing integration shape is:\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn from app.db import session_factory\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn from app.schemas import Capture\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn from app.service import ingest_capture\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn \par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn sessions = session_factory()\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn \par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn with sessions.begin() as db:\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn     capture = Capture.model_validate(normalized_record)\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep     order = ingest_capture(db, capture)\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 normalized_record must come from Member 1's verified workflow. Identical capture retries return the existing order. Conflicting capture data or identifiers raise Conflict. The caller owns the transaction commit.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 If the verified webhook router is mounted inside this FastAPI app, it should use PayPal's verification process rather than the merchant Basic-auth dependency. Agree on error mapping and webhook acknowledgement behavior with Member 1.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Member 2 supplies extracted facts\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Give Member 2 the schemas and exact examples. They should return supported intent values, a source quote, a confidence within 0 to 1 and an optional proposed US address. The label parser should return the complete destination components, tracking number, carrier and confidence when available.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Agree whether Member 2 calls internal functions, mounts a router or submits to the existing protected intake routes. The current backend accepts analysis; it does not invoke an LLM or a vision model itself. Describe the adapter explicitly so neither teammate waits for the other to implement it.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 If extraction fails, preserve an understandable failure and hold for review. Do not manufacture a plausible address or a high confidence just to make the contract pass. Customer text and label content are untrusted input, including instructions embedded within them.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Your handoff to Member 4\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Provide the API base URL, /docs location, successful and failing payloads, null-result behavior, source marker and error statuses. Explain that /labels takes parsed JSON, not multipart image data. Agree where the image-upload UI will call Member 2's implementation.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The frontend should display backend verdicts and reasons. It should not recompute policy in JavaScript. Use runtime credentials for the single-merchant demo and avoid committing them or embedding a shared password into a public build.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 16 Planned merchant actions and evidence\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 This section explains later work from the architecture plan. These capabilities are not implemented by the current routes.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Refunds tracking and replacement orders\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Your role is to validate the merchant request, check order state, coordinate Member 1's integration and record the result. Member 1 implements PayPal calls and protocol details. Add an action record and clear states when this work begins; the existing four tables do not represent a complete financial-action history.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 For an action, authorize the merchant on the server, identify the exact order and current inputs, record the request and pass a stable retry identifier to the integration where supported. Only record success after a confirmed successful result. A timeout can mean outcome unknown; reconcile it before repeating a financial operation.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Creating a reorder link is different from receiving a paid replacement order. Entering tracking is different from PayPal accepting tracking. A local BLOCKED result is different from a refund. Show these states separately.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Human review also needs a designed API. The expanded state diagram allows review decisions, but the current implementation has no merchant override route or approval record. Store who approved what, when and against which input version before describing that feature as complete.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Evidence preparation and submission\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Build a stable snapshot of original transaction data, relevant customer messages, label information, comparisons, verdicts, action history and available tracking facts. Member 2 can draft a summary from those stored facts. Avoid adding claims that are absent from the records.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Serialize the saved bundle deterministically and compute SHA-256 over its exact bytes using hashlib. Retain the same bytes or a durable version identifier for later checking. A hash detects a change relative to that saved value; it does not authenticate the original transaction or stop someone from replacing both bundle and hash.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Separate preview from submission. Record merchant approval for the exact evidence version. If the pack changes, require review of the changed pack. Member 1 handles the provide-evidence request and response. Mark EVIDENCE_SUBMITTED only after the submission is confirmed, not merely after pack generation.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 A boolean approved supplied by the browser is insufficient by itself. The backend must authenticate the merchant, check authority over the order and bind approval to the actual action and version.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 17 Deploying the backend\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 render.yaml defines a Python web service and a managed Postgres database in the same region. The checked-in configuration selects paid service plans. Review the host's displayed resources and charges before creating them. Having a YAML file does not mean those resources are already deployed.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Use the Git repository and branch agreed by the team. If the workspace is only a folder, create or connect the intended repository before configuring the host. Avoid assuming a remote exists because source files are present.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The deployment sequence is dependency installation, database migration, then application startup. The configured start command binds to the host-provided PORT on all interfaces and disables access logging.\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Build       pip install -r requirements.txt\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Pre deploy  alembic upgrade head\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep\keepn Start       uvicorn app.main:app --host 0.0.0.0\par
+\pard\s0\f1\fs18\li120\sa0\sl220\slmult0\keep             --port $PORT --no-access-log --log-level info\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 The displayed start command wraps for readability; render.yaml contains it on one line.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Set MERCHANT_USERNAME, MERCHANT_PASSWORD and the actual frontend CORS_ORIGINS in the hosting configuration. The blueprint injects the database connection string. Do not put live secrets into source control or use the local-only database password remotely.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Deployment checks\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 1. Confirm dependency installation and migration complete successfully.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 2. Call /health/ready and confirm the service reaches Postgres.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 3. Request /orders without credentials and expect 401.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 4. Authenticate and check queue and detail responses.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 5. Insert only synthetic scenarios for the demo when desired.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 6. Run the frontend against the deployed backend and verify CORS and auth.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 7. Recreate or restart the app and confirm stored order data remains.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 8. Exercise one message and label flow and inspect the saved verdict.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Postgres preserves structured records independently of the web process. If image upload is added later, local web-service files are not automatically durable. Choose a persistent file-storage location and store its reference in the database.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Keep production or real customer data outside the public hackathon demo. The current app has one merchant credential pair and no tenant isolation, account lifecycle or production payment workflow.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 18 The demo you should make reliable\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Your backend demo should prove that an input reaches the rules, an explained verdict reaches the frontend and the database retains the decision. The current seeded version can demonstrate all three local verdicts. A real PayPal sandbox demonstration additionally needs Member 1's verified integration.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Start with DEMO-CLEAN and show the original address, matching label and PROTECTED result. Then open DEMO-MISMATCH and show the changed house number and BLOCKED reason. Finally, open DEMO-UNCERTAIN and show why the lower confidence requires REVIEW.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 For a live walkthrough, send a new message and parsed label through the intake routes, refresh the dashboard and show the new result. Identify the message source and parsed label as simulated until the corresponding integrations run. Avoid calling a fixture capture a PayPal response.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Keep a known fixture set and a separate demo database. Prepare endpoint examples in advance, confirm credentials privately and rehearse with the actual deployed frontend. Do not install dependencies or change the schema during the recording.\par
+\pard\s3\f0\fs24\b\sb180\sa100\keepn Definition of done for your current slice\b0\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab The documented Python 3.12 setup runs for another team member.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Migrations create the expected tables on a fresh Postgres database.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Trusted capture ingestion preserves the original address and handles identical retries.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab The queue and detail routes return the shared shape with correct null handling.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Parsed labels produce explained, persisted verdicts.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Message updates recompute as documented and preserve earlier verdict snapshots.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Invalid requests and unauthorized requests fail clearly.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab SQLite tests pass and Postgres checks are reported separately.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab The frontend can use the hosted backend and display the three scenarios.\par
+\pard\s0\f0\fs22\keep\li240\fi-180\sa90\sl270\slmult0\bullet\tab Planned PayPal actions and evidence are identified as pending until implemented and checked.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 19 A practical work plan\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Use the original plan's sequence even when dates move. Do not start by polishing evidence summaries while the mismatch path cannot reach the dashboard.\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Milestone\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Your deliverable\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Completion check\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Contracts and app skeleton\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Shared schemas, app, database configuration and initial migration\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Teammates can validate the same example records\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Core path\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Capture helper, label intake, comparison, verdict and order API\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A mismatched label produces BLOCKED and saved reasons\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Address behavior\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Normalization rules and uncertainty precedence\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Representative equivalence and mismatch tests pass\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Team integration\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Real sandbox capture and actual AI outputs use existing contracts\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 One complete order flow works without manual database edits\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Deployment\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Hosted API, persistent Postgres, migration and private config\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Frontend can complete the flow after an app restart\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Optional extensions\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Approved actions and evidence workflow\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Real outcomes are recorded and distinguishable from previews\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx2150\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx6000\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Freeze and recording\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Stable synthetic scenarios and rehearsed demo\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Recording path runs repeatedly without new code changes\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 At each check-in, report the working outcome, the next integration you need and one concrete blocker if there is one. For example, say that parsed-label evaluation works but no image adapter is connected, rather than saying that the AI flow is done.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn 20 Common mistakes to catch before handoff\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not overwrite paypal_address with the proposed address. That destroys the reference needed for comparison. Keep a replacement order as a separately identified transaction.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not interpret a high fuzzy score as destination equality. House numbers, units and directional components need explicit attention. A single character can identify a different apartment or street.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not treat REVIEW as a minor warning that permits automatic dispatch. It is the path for uncertainty and unconfirmed eligibility. Frontend actions should reflect that workflow.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not describe the current backend as reading images or calling the LLM. It accepts structured outputs. Keep that boundary visible in team integration notes.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not treat a seed command as a reset command. Existing orders are left intact. Use separate disposable databases for testing and clean recording fixtures.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not report all database behavior as checked when the Postgres variants skipped. Record what environment ran and what remains untested.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not infer action success from a button click or an HTTP timeout. Save confirmed outcomes and reconcile uncertain external operations.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Do not expand the scope to multiple payment providers, carrier rerouting or multi-tenant accounts until the agreed hackathon path is reliable. Those features require additional data contracts and security boundaries.\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn Appendix A Troubleshooting\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Symptom\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b First checks\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Python command uses the wrong version\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Run python --version and use the environment created with Python 3.12\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Activation is blocked\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Invoke the environment's executables directly\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Docker connection fails\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Start Docker Desktop, then inspect docker compose ps\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Port 5432 is occupied\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Check for another local Postgres; agree a port change and update DATABASE_URL consistently\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Missing table error\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Confirm the database URL and run alembic upgrade head for the intended development database\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 App fails at startup\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Confirm MERCHANT_USERNAME, MERCHANT_PASSWORD and DATABASE_URL are set in that shell\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Browser returns 401\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Check runtime Basic credentials; documentation access alone does not authorize API calls\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Browser reports CORS failure\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Match CORS_ORIGINS to the actual frontend origin including scheme and port\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Label request returns 422\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Send parsed JSON with the exact schema, not an image or renamed fields\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Message request returns 422\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Check confidence range, enum value and whether quote occurs exactly in text\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Message request returns 409\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Check whether that message ID already has different text or analysis\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Obvious mismatch returns REVIEW\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Read all reasons; uncertainty takes precedence in the current engine\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Fixture does not reset after seeding\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Seed preserves existing orders; use an isolated fresh demo database\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Tests skip Postgres\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Set TEST_DATABASE_URL only to a disposable test database\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Health passes but orders fail\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Health checks connectivity only; confirm migrations and application requests\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn Appendix B Glossary\b0\par
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\trhdr\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\clcbpat3\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Term\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b Meaning in this project\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Backend\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Server code that validates requests, applies rules and stores data\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Endpoint\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A method and URL exposed by the backend\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 JSON contract\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Agreed fields, types and meanings exchanged between modules\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Webhook\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A service's HTTP notification about an event\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Capture\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 The payment capture record linked to an order\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Normalization\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Converting supported formatting variants into comparable components\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Deterministic rule\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Code that returns the same result for the same inputs and rule version\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Verdict\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 SellerShield's workflow decision after comparison and uncertainty checks\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 ORM\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A library mapping Python model objects to database tables\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Migration\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A versioned change to the database schema\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Transaction\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 A group of database changes committed or rolled back together\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Idempotency\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Safe handling of repeated requests without repeating the intended effect\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Row lock\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Database coordination that prevents concurrent changes from racing on one row\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Audit snapshot\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Saved inputs and result for a specific evaluation\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Fixture\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Synthetic data used in tests or a demonstration\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Sandbox\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Provider test environment for integrations\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\trkeepfollow\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 CORS\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\keepn\b0 Browser rules governing cross-origin access; not authentication\b0\cell
+\row
+\trowd\trkeep\trgaph90\trleft0\trpaddl90\trpaddr90\trpaddt70\trpaddb70\trpaddfl3\trpaddfr3\trpaddft3\trpaddfb3\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx3100\clvertalc\clbrdrt\brdrs\brdrw5\brdrcf2\clbrdrl\brdrs\brdrw5\brdrcf2\clbrdrb\brdrs\brdrw5\brdrcf2\clbrdrr\brdrs\brdrw5\brdrcf2\cellx9746
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 SHA-256\b0\cell
+\pard\s0\intbl\f0\fs19\sa60\sl230\slmult0\b0 Hash function producing a digest of exact bytes\b0\cell
+\row
+\pard\s0\fs8\sa60\par
+\pard\s2\f0\fs30\b\sb260\sa130\keepn Appendix C References and team decisions\b0\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 1. SellerShield AI Research and Roadmap, supplied PDF, especially pages 4 and 5 for architecture and member responsibilities.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 2. SellerShield AI Architecture and Member Plan, supplied Markdown file, especially module responsibilities, contracts and Member 3's plan.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 3. PayPal US Seller Protection policy: https://www.paypal.com/us/legalhub/paypal/seller-protection\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 4. FastAPI request bodies: https://fastapi.tiangolo.com/tutorial/body/\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 5. FastAPI testing: https://fastapi.tiangolo.com/tutorial/testing/\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 6. FastAPI server operation: https://fastapi.tiangolo.com/deployment/manually/\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 7. SQLAlchemy session and transaction basics: https://docs.sqlalchemy.org/en/20/orm/session_basics.html\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 8. Alembic tutorial: https://alembic.sqlalchemy.org/en/latest/tutorial.html\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 9. usaddress project documentation: https://github.com/datamade/usaddress\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 10. RapidFuzz scoring documentation: https://rapidfuzz.github.io/RapidFuzz/Usage/fuzz.html\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 11. Docker Compose quickstart: https://docs.docker.com/compose/gettingstarted/\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 12. Render Blueprints: https://render.com/docs/infrastructure-as-code\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 13. Render persistent storage behavior: https://render.com/docs/disks\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 14. Current workspace files: README.md, requirements.txt, app, fixtures, tests, migrations, compose.yaml and render.yaml.\par
+\pard\s0\f0\fs22\keep\sa120\sl270\slmult0 Before extending the prototype, agree on missing-unit handling, ZIP extensions, supported address forms, latest-message policy, merchant review APIs and the exact ownership of image upload. The documents and current code do not settle every product decision. Keep the team contract and evaluated examples updated when those decisions change.\par
+}
